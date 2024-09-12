@@ -30,6 +30,7 @@ enable:
   # If "build_cutout" : true # requires cds API key https://cds.climate.copernicus.eu/api-how-to
   # More information https://atlite.readthedocs.io/en/latest/introduction.html#datasets
   build_cutout: false
+  climate_projection_cutout: false
   build_natura_raster: true  # If True, then build_natura_raster can be run
 
 custom_rules: []  # Default empty [] or link to custom rule file e.g. ["my_folder/my_rules.smk"] that add rules to Snakefile
@@ -221,6 +222,17 @@ atlite:
       # The cutout spatial extent [x,y] is automatically set by country selection. See `countires:` option above and 'build_cutout.py'.
       # x: [-12., 35.]  # set cutout range manual, instead of automatic by boundaries of country
       # y: [33., 72]    # manual set cutout range
+
+
+projection:
+  climate_scenario: ssp245
+  base_year: 2020
+  future_year: 2050
+  years_window: 5 # a half of width currently
+  gcm_selection: false # false to use all the available global climate models
+  cmip6_nn_fl: data/cmip6/tnn_CMIP6_ssp245_mon_201501-210012.nc # false or names of min-extremal files of climate inputs
+  cmip6_xx_fl: data/cmip6/txx_CMIP6_ssp245_mon_201501-210012.nc # false or names of max-extremal files of climate inputs
+
 
 renewable:
   onwind:

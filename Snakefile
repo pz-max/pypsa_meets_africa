@@ -62,6 +62,8 @@ wildcard_constraints:
     ll="(v|c)([0-9\.]+|opt|all)|all",
     opts="[-+a-zA-Z0-9\.]*",
     unc="[-+a-zA-Z0-9\.]*",
+    # "^proj-" is reserved for projections, negative lookbehind assertion used in the regexp
+    cutout=".+(?<!proj-)",
 
 
 if config["custom_rules"] is not []:
@@ -366,6 +368,33 @@ if config["enable"].get("build_cutout", False):
             mem_mb=ATLITE_NPROCESSES * 1000,
         script:
             "scripts/build_cutout.py"
+
+
+if config["enable"].get("climate_projection_cutout", False):
+
+    rule build_climate_projections:
+        params:
+            snapshots=config["snapshots"],
+            climate_scenario=config["projection"]["climate_scenario"],
+            base_year=config["projection"]["base_year"],
+            future_year=config["projection"]["future_year"],
+            years_window=config["projection"]["years_window"],
+            cmip6_nn_fl=config["projection"]["cmip6_nn_fl"],
+            cmip6_xx_fl=config["projection"]["cmip6_xx_fl"],
+        input:
+            cutout="cutouts/" + CDIR + "{cutout}.nc",
+            cmip6_avr="data/cmip6/t_CMIP6_ssp245_mon_201501-210012.nc",
+        output:
+            "cutouts/" + CDIR + "proj-{cutout}.nc",
+        log:
+            "logs/" + RDIR + "build_climate_projections/proj-{cutout}.log",
+        benchmark:
+            "benchmarks/" + RDIR + "proj-{cutout}"
+        threads: ATLITE_NPROCESSES
+        resources:
+            mem_mb=ATLITE_NPROCESSES * 1000,
+        script:
+            "scripts/build_climate_projections.py"
 
 
 if config["enable"].get("build_natura_raster", False):
