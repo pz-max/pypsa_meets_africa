@@ -1,9 +1,10 @@
-,Unit,Values,Description
-gadm_layer_id,, "{0, 1, 2}", "GADM level area used for the gadm_shapes. Codes are country-dependent but roughly: 0: country, 1: region/county-like, 2: municipality-like."
-update_file, bool, "{True, False}", "True: all input files are downloaded again and replace the existing files."
-out_logging, bool, "{True, False}", "True: Logging is printed in the console."
-year,, "past year; e.g. YYYY", "Reference year used to derive shapes, info on population and info on GDP."
-nprocesses, int,, "Number of processes to be used in build_shapes."
-worldpop_method,, "{""standard"", ""api"", false}", "Specifies how population is added to every shape: ""standard"" pulls from web 1kmx1km raster; ""api"" pulls from API 100mx100m raster; false (not ""false"") no population addition to shape. This is useful when generating only cutout."
-gdp_method,, "{""standard"", false}", "Specifies how GDP is added to every shape: ""standard"" pulls from web 1x1km raster; false (not ""false"") no gdp addition to shape. This is useful when generating only cutout."
-contended_flag,, "{""set_by_country"", ""drop""}", "Specifies what to do with contended countries: ""set_by_country"" assigns the contended areas to the countries according to the GADM database; ""drop"" drops the contended areas from the model."
+,Unit,Values,Description,,,,
+gadm_layer_id,,"""{0",1,"2}""","""GADM level area used for the gadm_shapes. Codes are country-dependent but roughly: 0: country",1: region/county-like,"2: municipality-like."""
+simplify_tolerance,float,>= 0,Specifies tolerance limit when simplifying GADM shapes. A higher value indicates more simplification,,,,
+update_file, bool," ""{True"," False}"""," ""True: all input files are downloaded again and replace the existing files.""",,,
+out_logging, bool," ""{True"," False}"""," ""True: Logging is printed in the console.""",,,
+year,," ""past year; e.g. YYYY"""," ""Reference year used to derive shapes"," info on population and info on GDP.""",,,
+nprocesses, int,," ""Number of processes to be used in build_shapes.""",,,,
+worldpop_method,," ""{""standard"""," ""api"""," false}""","""Specifies how population is added to every shape: ""standard"" pulls from web 1kmx1km raster; ""api"" pulls from API 100mx100m raster; false (not ""false"") no population addition to shape. This is useful when generating only cutout.""",,
+gdp_method,," ""{""standard"""," false}""","""Specifies how GDP is added to every shape: ""standard"" pulls from web 1x1km raster; false (not ""false"") no gdp addition to shape. This is useful when generating only cutout.""",,,
+contended_flag,," ""{""set_by_country"""," ""drop""}"""," ""Specifies what to do with contended countries: ""set_by_country"" assigns the contended areas to the countries according to the GADM database; ""drop"" drops the contended areas from the model.""",,,
