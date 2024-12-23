@@ -12,56 +12,93 @@ import numpy as np
 import pandas as pd
 from _helpers import BASE_DIR
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
+
+def _add_iso2_code_per_country_and_clean_data(df):
+    """
+    Converts 'Country' names to ISO2 codes in a new 'country' column.
+    Cleans DataFrame by removing rows with invalid 'country' values.
+    """
+
+    cc = coco.CountryConverter()
+    df["country"] = cc.pandas_convert(
+        series=pd.Series(df["Country"]), to="ISO2", not_found="not found"
+    )
+
+    df = df[df.country != "not found"]
+
+    # Drop region names where country column contains list of countries
+    df = df[df.country.apply(lambda x: isinstance(x, str))]
+
+    df = df.drop_duplicates(subset=["country"])
+
+    return df
 
 
 def download_number_of_vehicles():
     """
-    Downloads the Number of registered vehicles as .csv File.
+    Downloads and returns the number of registered vehicles
+    as tabular data from WHO and Wikipedia.
 
-    The following csv file was downloaded from the webpage
-    https://apps.who.int/gho/data/node.main.A995
-    as a .csv file.
+    The csv data from the WHO website is imported
+    from 'https://apps.who.int/gho/data/node.main.A995'.
+    A few countries are missing in the WHO list (e.g. South Africa, Algeria).
+    Therefore, the number of vehicles per country table from Wikipedia
+    is also imported for completion (prio 2):
+    'https://en.wikipedia.org/wiki/List_of_countries_and_territories_by_motor_vehicles_per_capita'.
     """
-    fn = "https://apps.who.int/gho/athena/data/GHO/RS_194?filter=COUNTRY:*&ead=&x-sideaxis=COUNTRY;YEAR;DATASOURCE&x-topaxis=GHO&profile=crosstable&format=csv"
-    storage_options = {"User-Agent": "Mozilla/5.0"}
 
-    # Read the 'Data' sheet directly from the csv file at the provided URL
-    try:
-        Nbr_vehicles_csv = pd.read_csv(
-            fn, storage_options=storage_options, encoding="utf8"
+    def _download_vehicles_data_from_gho():
+        url = "https://apps.who.int/gho/athena/data/GHO/RS_194?filter=COUNTRY:*&ead=&x-sideaxis=COUNTRY;YEAR;DATASOURCE&x-topaxis=GHO&profile=crosstable&format=csv"
+        storage_options = {"User-Agent": "Mozilla/5.0"}
+        df = pd.read_csv(url, storage_options=storage_options, encoding="utf8")
+
+        df.rename(
+            columns={
+                "Countries, territories and areas": "Country",
+                "Number of registered vehicles": "number cars",
+            },
+            inplace=True,
         )
-        print("File read successfully.")
+
+        df["number cars"] = df["number cars"].str.replace(" ", "").replace("", np.nan)
+
+        df = df.dropna(subset=["number cars"])
+
+        return df[["Country", "number cars"]]
+
+    def _download_vehicles_data_from_wiki():
+        url = "https://en.wikipedia.org/wiki/List_of_countries_and_territories_by_motor_vehicles_per_capita"
+        df = pd.read_html(url)[0]
+
+        df.rename(
+            columns={"Location": "Country", "Vehicles": "number cars"}, inplace=True
+        )
+
+        return df[["Country", "number cars"]]
+
+    try:
+        nbr_vehicles = pd.concat(
+            [_download_vehicles_data_from_gho(), _download_vehicles_data_from_wiki()],
+            ignore_index=True,
+        )
     except Exception as e:
-        print("Failed to read the file:", e)
+        logger.warning(
+            "Failed to read the file:",
+            e,
+            "\nReturning an empty df and falling back on the hard-coded data.",
+        )
         return pd.DataFrame()
 
-    Nbr_vehicles_csv = Nbr_vehicles_csv.rename(
-        columns={
-            "Countries, territories and areas": "Country",
-            "Number of registered vehicles": "number cars",
-        }
-    )
+    nbr_vehicles["number cars"] = nbr_vehicles["number cars"].astype(int)
 
-    # Add ISO2 country code for each country
-    cc = coco.CountryConverter()
-    Country = pd.Series(Nbr_vehicles_csv["Country"])
-    Nbr_vehicles_csv["country"] = cc.pandas_convert(
-        series=Country, to="ISO2", not_found="not found"
-    )
+    nbr_vehicles = _add_iso2_code_per_country_and_clean_data(nbr_vehicles)
 
-    # # Remove spaces, Replace empty values with NaN
-    Nbr_vehicles_csv["number cars"] = (
-        Nbr_vehicles_csv["number cars"].str.replace(" ", "").replace("", np.nan)
-    )
+    # Drops duplicates and keeps WHO-GHO data in case of duplicates
+    nbr_vehicles = nbr_vehicles.drop_duplicates(subset=["country"], keep="first")
 
-    # Drop rows with NaN values in 'number cars'
-    Nbr_vehicles_csv = Nbr_vehicles_csv.dropna(subset=["number cars"])
-
-    # convert the 'number cars' to integer
-    Nbr_vehicles_csv["number cars"] = Nbr_vehicles_csv["number cars"].astype(int)
-
-    return Nbr_vehicles_csv
+    return nbr_vehicles
 
 
 def download_CO2_emissions():
@@ -71,6 +108,7 @@ def download_CO2_emissions():
     The dataset is downloaded from the following link: https://data.worldbank.org/indicator/EN.CO2.TRAN.ZS?view=map
     It is until the year 2014. # TODO: Maybe search for more recent years.
     """
+
     url = (
         "https://api.worldbank.org/v2/en/indicator/EN.CO2.TRAN.ZS?downloadformat=excel"
     )
@@ -90,21 +128,21 @@ def download_CO2_emissions():
     # Calculate efficiency based on CO2 emissions from transport (% of total fuel combustion)
     CO2_emissions["average fuel efficiency"] = (100 - CO2_emissions["2014"]) / 100
 
-    # Add ISO2 country code for each country
+    CO2_emissions = CO2_emissions.dropna(subset=["average fuel efficiency"])
+
     CO2_emissions = CO2_emissions.rename(columns={"Country Name": "Country"})
-    cc = coco.CountryConverter()
-    CO2_emissions.loc[:, "country"] = cc.pandas_convert(
-        series=CO2_emissions["Country"], to="ISO2", not_found="not found"
-    )
 
-    # Drop region names that have no ISO2:
-    CO2_emissions = CO2_emissions[CO2_emissions.country != "not found"]
+    CO2_emissions = _add_iso2_code_per_country_and_clean_data(CO2_emissions)
 
-    # Drop region names where country column contains list of countries
-    CO2_emissions = CO2_emissions[
-        CO2_emissions.country.apply(lambda x: isinstance(x, str))
-    ]
-    return CO2_emissions
+    CO2_emissions["average fuel efficiency"] = CO2_emissions[
+        "average fuel efficiency"
+    ].astype(float)
+
+    CO2_emissions.loc[:, "average fuel efficiency"] = CO2_emissions[
+        "average fuel efficiency"
+    ].round(3)
+
+    return CO2_emissions[["country", "average fuel efficiency"]]
 
 
 if __name__ == "__main__":
@@ -120,34 +158,21 @@ if __name__ == "__main__":
     # store_path_data = Path.joinpath(Path().cwd(), "data")
     # country_list = country_list_to_geofk(snakemake.config["countries"])'
 
-    # Downloaded and prepare vehicles_csv:
-    vehicles_csv = download_number_of_vehicles().copy()
+    # Downloaded and prepare vehicles data:
+    vehicles_df = download_number_of_vehicles().copy()
 
-    # Downloaded and prepare CO2_emissions_csv:
-    CO2_emissions_csv = download_CO2_emissions().copy()
+    # Downloaded and prepare CO2_emissions data:
+    CO2_emissions_df = download_CO2_emissions().copy()
 
-    if vehicles_csv.empty or CO2_emissions_csv.empty:
+    if vehicles_df.empty or CO2_emissions_df.empty:
         # In case one of the urls is not working, we can use the hard-coded data
         src = BASE_DIR + "/data/temp_hard_coded/transport_data.csv"
         dest = snakemake.output.transport_data_input
         shutil.copy(src, dest)
     else:
         # Join the DataFrames by the 'country' column
-        merged_df = pd.merge(vehicles_csv, CO2_emissions_csv, on="country")
+        merged_df = pd.merge(vehicles_df, CO2_emissions_df, on="country")
         merged_df = merged_df[["country", "number cars", "average fuel efficiency"]]
-
-        # Drop rows with NaN values in 'average fuel efficiency'
-        merged_df = merged_df.dropna(subset=["average fuel efficiency"])
-
-        # Convert the 'average fuel efficiency' to float
-        merged_df["average fuel efficiency"] = merged_df[
-            "average fuel efficiency"
-        ].astype(float)
-
-        # Round the 'average fuel efficiency' to three decimal places
-        merged_df.loc[:, "average fuel efficiency"] = merged_df[
-            "average fuel efficiency"
-        ].round(3)
 
         # Save the merged DataFrame to a CSV file
         merged_df.to_csv(

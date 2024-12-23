@@ -15,6 +15,7 @@ This part of documentation collects descriptive release notes to capture the mai
 
 * Include option in the config to allow for custom airport data `PR #1241 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1241>`__
 
+* Add wikipedia source to transport_data `PR #1244 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1244>`__
 
 **Minor Changes and bug-fixing**
 
