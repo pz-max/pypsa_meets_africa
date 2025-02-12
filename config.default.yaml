@@ -362,10 +362,9 @@ renewable:
 # Costs Configuration
 costs:
   year: 2030
-  version: v0.10.0
+  version: v0.11.0
   discountrate: [0.071] #, 0.086, 0.111]
-  # [EUR/USD] ECB: https://www.ecb.europa.eu/stats/exchange/eurofxref/html/eurofxref-graph-usd.en.html # noqa: E501
-  USD2013_to_EUR2013: 0.7532 # [EUR/USD] ECB: https://www.ecb.europa.eu/stats/exchange/eurofxref/html/eurofxref-graph-usd.en.html
+  output_currency: "EUR"
   rooftop_share: 0.14 # based on the potentials, assuming  (0.1 kW/m2 and 10 m2/person)
   fill_values:
     FOM: 0

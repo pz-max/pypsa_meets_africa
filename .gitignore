@@ -11,6 +11,7 @@
 .ipynb_checkpoints
 
 # General untracked file formats
+*.idea
 *.log
 **/pbf
 *.pbf
