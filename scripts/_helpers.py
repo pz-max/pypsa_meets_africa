@@ -551,7 +551,11 @@ def mock_snakemake(
     import os
 
     import snakemake as sm
-    from pypsa.descriptors import Dict
+
+    try:
+        from pypsa.descriptors import Dict
+    except:
+        from pypsa.definitions.structures import Dict  # from pypsa version v0.31
     from snakemake.script import Snakemake
 
     script_dir = Path(__file__).parent.resolve()

@@ -86,6 +86,7 @@ import re
 from zipfile import ZipFile
 
 import geopandas as gpd
+import googledrivedownloader as gdd
 import pandas as pd
 import yaml
 from _helpers import (
@@ -95,7 +96,6 @@ from _helpers import (
     create_logger,
     progress_retrieve,
 )
-from google_drive_downloader import GoogleDriveDownloader as gdd
 from tqdm import tqdm
 
 logger = create_logger(__name__)
