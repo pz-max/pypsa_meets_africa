@@ -243,7 +243,7 @@ def load_powerplants(ppl_fn):
     null_ppls = ppl[ppl.p_nom <= 0]
     if not null_ppls.empty:
         logger.warning(f"Drop powerplants with null capacity: {list(null_ppls.name)}.")
-        ppl = ppl.drop(null_ppls.index).reset_index(drop=True)
+        ppl = ppl.drop(null_ppls.index)
     return ppl
 
 
@@ -472,6 +472,7 @@ def attach_hydro(n, costs, ppl):
 
     ppl = (
         ppl.query('carrier == "hydro"')
+        .assign(ppl_id=lambda df: df.index)
         .reset_index(drop=True)
         .rename(index=lambda s: str(s) + " hydro")
     )
@@ -488,65 +489,36 @@ def attach_hydro(n, costs, ppl):
     ror = ppl.query('technology == "Run-Of-River"')
     phs = ppl.query('technology == "Pumped Storage"')
     hydro = ppl.query('technology == "Reservoir"')
-    if snakemake.params.alternative_clustering:
-        bus_id = ppl["region_id"]
-    else:
-        bus_id = ppl["bus"]
 
     inflow_idx = ror.index.union(hydro.index)
     if not inflow_idx.empty:
         with xr.open_dataarray(snakemake.input.profile_hydro) as inflow:
-            inflow_buses = bus_id[inflow_idx]
-            missing_plants = pd.Index(inflow_buses.unique()).difference(
-                inflow.indexes["plant"]
-            )
-            # map power plants index (regions_onshore) into power plants ids (powerplants.csv)
-            # plants_to_keep correspond to "plant" index of regions_onshore
-            # plants_to_keep.index corresponds to bus_id of PyPSA network
-            plants_with_data = inflow_buses[inflow_buses.isin(inflow.indexes["plant"])]
-            plants_to_keep = plants_with_data.to_numpy()
+            found_plants = ppl.ppl_id[ppl.ppl_id.isin(inflow.indexes["plant"])]
+            missing_plants_idxs = ppl.index.difference(found_plants.index)
 
             # if missing time series are found, notify the user and exclude missing hydro plants
-            if not missing_plants.empty:
+            if not missing_plants_idxs.empty:
                 # original total p_nom
                 total_p_nom = ror.p_nom.sum() + hydro.p_nom.sum()
-                # update plants_with_data to ensure proper match between "plant" index and bus_id
-                plants_with_data = inflow_buses[inflow_buses.isin(plants_to_keep)]
-                network_buses_to_keep = plants_with_data.index
-                plants_to_keep = plants_with_data.to_numpy()
 
-                ror = ror.loc[ror.index.intersection(network_buses_to_keep)]
-                hydro = hydro.loc[hydro.index.intersection(network_buses_to_keep)]
+                ror = ror.loc[ror.index.intersection(found_plants.index)]
+                hydro = hydro.loc[hydro.index.intersection(found_plants.index)]
                 # loss of p_nom
                 loss_p_nom = ror.p_nom.sum() + hydro.p_nom.sum() - total_p_nom
 
                 logger.warning(
-                    f"'{snakemake.input.profile_hydro}' is missing inflow time-series for at least one bus: {', '.join(missing_plants)}."
+                    f"'{snakemake.input.profile_hydro}' is missing inflow time-series for at least one bus: {', '.join(missing_plants_idxs)}."
                     f"Corresponding hydro plants are dropped, corresponding to a total loss of {loss_p_nom:.2f}MW out of {total_p_nom:.2f}MW."
                 )
 
             # if there are any plants for which runoff data are available
-            if not plants_with_data.empty:
-                network_buses_to_keep = plants_with_data.index
-                plants_to_keep = plants_with_data.to_numpy()
-
-                # hydro_inflow_factor is used to divide the inflow between the various units of each power plant
-                if not snakemake.params.alternative_clustering:
-                    hydro_inflow_factor = hydro["p_nom"] / hydro.groupby("bus")[
-                        "p_nom"
-                    ].transform("sum")
-                else:
-                    hydro_inflow_factor = hydro["p_nom"] / hydro.groupby("region_id")[
-                        "p_nom"
-                    ].transform("sum")
-
+            if not found_plants.empty:
                 inflow_t = (
-                    inflow.sel(plant=plants_to_keep)
+                    inflow.sel(plant=found_plants.values)
+                    .assign_coords(plant=found_plants.index)
                     .rename({"plant": "name"})
-                    .assign_coords(name=network_buses_to_keep)
                     .transpose("time", "name")
                     .to_pandas()
-                    * hydro_inflow_factor
                 )
 
     if "ror" in carriers and not ror.empty:
