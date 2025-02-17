@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+"""
+Set of helper functions for all occasions.
+"""
 
 import io
 import logging
@@ -40,6 +43,59 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 # absolute path to config.default.yaml
 CONFIG_DEFAULT_PATH = os.path.join(BASE_DIR, "config.default.yaml")
+CONFIGS_STORE_PATH = os.path.join(BASE_DIR, "config.default.yaml")
+
+
+def write_config(config, fl_name, config_exclude=False):
+    """
+    Outputs config dictionary into a file
+
+    Parameters
+    ----------
+    config : dict
+        Dictionary formed from Snakemake `config` global variable
+
+    config_exclude : dict
+        Dictionary formed from Snakemake `config` global variable
+        used to subtract from `config`. Needed to get rid of technical
+        configuration parameters not relevant for modeling runs
+
+    fl_name : str
+        File name to store the useful config
+
+    Returns
+    -------
+    tuple or str or dict
+        If a single key is provided, returns the corresponding value from the
+        regions config file. If multiple keys are provided, returns a tuple
+        containing values corresponding to the provided keys.
+
+
+    """
+
+    # Avoid confusing REUSE as in https://reuse.software/faq/#exclude-lines
+    # REUSE-IgnoreStart
+    license_str_list = [
+        "# SPDX-FileCopyrightText:  PyPSA-Earth and PyPSA-Eur Authors",
+        "# SPDX-License-Identifier: AGPL-3.0-or-later",
+        "#",
+        "\n\r",
+    ]
+    # REUSE-IgnoreEnd
+    license_str = "\n\r".join(license_str_list)
+
+    if config_exclude:
+        keys_exclude = set(config.keys()) - set(config_exclude.keys())
+        config_clean = dict()
+        for key in keys_exclude:
+            config_clean[key] = config.get(key)
+    else:
+        config_clean = config
+
+    # TODO keep a copy if the file exists?
+    with open(fl_name, "w") as outfile:
+        outfile.write(license_str)
+        yaml.dump(config_clean, outfile, default_flow_style=False)
 
 
 def check_config_version(config, fp_config=CONFIG_DEFAULT_PATH):

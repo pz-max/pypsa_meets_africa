@@ -22,7 +22,7 @@ confer installation instructions at :ref:`installation`.
 Top-level configuration
 =======================
 
-.. literalinclude:: ../config.default.yaml
+.. literalinclude:: ../configs/config.main.yaml
    :language: yaml
    :start-at: version:
    :end-at:  build_cutout:
@@ -44,10 +44,10 @@ investment changes as more ambitious greenhouse-gas emission reduction targets a
 
 The ``run`` section is used for running and storing scenarios with different configurations which are not covered by :ref:`wildcards`. It determines the path at which resources, networks and results are stored. Therefore the user can run different configurations within the same directory. If a run with a non-empty name should use cutouts shared across runs, set ``shared_cutouts`` to `true`.
 
-.. literalinclude:: ../config.default.yaml
+.. literalinclude:: ../configs/config.main.yaml
    :language: yaml
    :start-at: run:
-   :end-at: shared_cutouts:
+   :end-at: allow_scenario_failure:
 
 .. csv-table::
    :header-rows: 1
@@ -73,10 +73,10 @@ An exemplary dependency graph (starting from the simplification rules) then look
 
 .. image:: img/scenarios.png
 
-.. literalinclude:: ../config.default.yaml
+.. literalinclude:: ../configs/config.main.yaml
    :language: yaml
    :start-at: scenario:
-   :end-at: opts:
+   :end-at: snapshots:
 
 .. csv-table::
    :header-rows: 1

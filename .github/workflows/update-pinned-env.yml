@@ -42,6 +42,8 @@ jobs:
       run: |
         conda env export --name ${{ github.event.repository.name }} --no-builds -c conda-forge -c bioconda -c gurobi --override-channels > envs/${{ matrix.suffix }}-pinned.yaml
 
+    # Avoid confusing REUSE as in https://reuse.software/faq/#exclude-lines
+    # REUSE-IgnoreStart
     - name: Add SPDX header
       if: ${{ matrix.suffix != 'windows' }}
       run: |
@@ -55,6 +57,7 @@ jobs:
         $CurrentContent = Get-Content "envs/${{ matrix.suffix }}-pinned.yaml" -Raw
         $NewContent = $SPDX_HEADER + $CurrentContent
         $NewContent | Set-Content "envs/${{ matrix.suffix }}-pinned.yaml"
+    # REUSE-IgnoreEnd
 
     - name: Cache environment files
       uses: actions/upload-artifact@v4
